@@ -15,8 +15,8 @@ import (
 	"sync/atomic"
 	"unsafe"
 
+	soap "github.com/fthrslntgy/go-winrm/soap"
 	"github.com/gofrs/uuid"
-	soap "github.com/jbrekelmans/go-winrm/soap"
 	zenwinrm "github.com/masterzen/winrm"
 	zensoap "github.com/masterzen/winrm/soap"
 	log "github.com/sirupsen/logrus"
