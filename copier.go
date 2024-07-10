@@ -64,14 +64,14 @@ type FileTreeCopier struct {
 // NewFileTreeCopier creates a new file copier and guards against errorneous input. remoteRoot must be a cleaned absolute Windows file path
 // that starts with a drive letter.
 // Limitations:
-// 1. if localRoot is a regular file then the remote directory to which it would be copied must not contain an entry with a case-insensitive
-//    equal name.
-// 2. after cleaning localRoot (using filepath.Clean), it should not contain any characters outside the regular expression class [a-zA-Z0-9-_\. ^&],
-//    because escaping such file names is not supported.
+//  1. if localRoot is a regular file then the remote directory to which it would be copied must not contain an entry with a case-insensitive
+//     equal name.
+//  2. after cleaning localRoot (using filepath.Clean), it should not contain any characters outside the regular expression class [a-zA-Z0-9-_\. ^&],
+//     because escaping such file names is not supported.
 func NewFileTreeCopier(shells []*Shell, remoteRoot, localRoot string) (*FileTreeCopier, error) {
 	f := &FileTreeCopier{
 		localRoot:  localRoot,
-		remoteRoot: remoteRoot,
+		remoteRoot: strings.ReplaceAll(remoteRoot, "/", "\\"),
 		shells:     make([]*Shell, len(shells)),
 	}
 	if len(shells) < 1 {
@@ -95,8 +95,7 @@ func NewFileTreeCopier(shells []*Shell, remoteRoot, localRoot string) (*FileTree
 	if f.localRoot == ".." || strings.HasPrefix(f.localRoot, parentPrefix) {
 		return nil, fmt.Errorf("localRoot must be a relative file within the current working directory")
 	}
-	remoteFile := f.getRemoteFile(f.localRoot)
-	if !regexpRemoteFileThatDoesNotNeedEscaping.MatchString(remoteFile) {
+	if !regexpRemoteFileThatDoesNotNeedEscaping.MatchString(f.remoteRoot) {
 		return nil, fmt.Errorf("either remoteRoot is not an absolute cleaned Windows path starting with a drive letter, or remoteRoot or "+
 			"localRoot has a path component that contains an unsupported character. The regexp for validating path "+
 			"components is %s", regexpFileBasenameThatDoesNotNeedEscaping.String())
@@ -206,7 +205,7 @@ func (f *FileTreeCopier) scanDirs() {
 	err := godirwalk.Walk(f.localRoot, &godirwalk.Options{
 		Callback: func(localFile string, de *godirwalk.Dirent) error {
 			if de.IsDir() {
-				remoteFile := f.getRemoteFile(localFile)
+				remoteFile := f.remoteRoot
 				if !strings.HasSuffix(remoteFile, "\\") {
 					// Do not attempt to create the root directory...
 					command := formatMakeDirectoryCommand(remoteFile, localFile == f.localRoot)
@@ -231,7 +230,7 @@ func (f *FileTreeCopier) scanDirs() {
 			} else if de.IsRegular() {
 				if localFile == f.localRoot {
 					// Special case, if the root is a regular file, we need to ensure it's containing directory exists.
-					remoteFile := f.getRemoteFile(localFile)
+					remoteFile := f.remoteRoot
 					i := strings.LastIndex(remoteFile, "\\")
 					// i >= because the root is a file
 					j := strings.LastIndex(remoteFile[:i], "\\")
@@ -319,24 +318,9 @@ outer:
 	}
 }
 
-func (f *FileTreeCopier) getRemoteFile(localFile string) string {
-	remoteFile := f.remoteRoot
-	if localFile != "." {
-		if !strings.HasSuffix(remoteFile, "\\") {
-			remoteFile += "\\"
-		}
-		if os.PathSeparator == '\\' {
-			remoteFile += localFile
-		} else {
-			remoteFile += strings.ReplaceAll(localFile, "/", "\\")
-		}
-	}
-	return remoteFile
-}
-
 func (w *copyFileWorker) copyFile(localFile string) error {
 	defer w.f.waitGroup.Done()
-	remoteFile := w.f.getRemoteFile(localFile)
+	remoteFile := w.f.remoteRoot
 	commandAndArgs := FormatPowerShellScriptCommandLine(`begin {
 	$path = ` + PowerShellSingleQuotedStringLiteral(remoteFile) + `
 	$DebugPreference = "Continue"
