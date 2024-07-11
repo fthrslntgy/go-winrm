@@ -190,7 +190,7 @@ func (c *Client) doPost(requestBody string) (string, error) {
 	if len(contentTypeStrings) != 1 {
 		return "", fmt.Errorf("server responded to %s %#v with HTTP status %d but the response has %d Content-Type headers", method, c.url, res.StatusCode, len(contentTypeStrings))
 	}
-	mimeType, _, err := mime.ParseMediaType(contentTypeStrings[0])
+	mimeType, _, _ := mime.ParseMediaType(contentTypeStrings[0])
 	if mimeType != soap.MimeType {
 		return "", fmt.Errorf("server responded to %s %#v with HTTP status %d but the Content-Type has unexpected mime type %#v", method, c.url, res.StatusCode, mimeType)
 	}
@@ -365,10 +365,6 @@ func (c *commandReader) Close(err error) bool {
 	return true
 }
 
-type commandWriter struct {
-	c *Command
-}
-
 // StartCommand starts a command on the remote shell.
 // winrsConsoleModeStdin and winrsSkipCmdShell correspond to the SOAP options WINRS_CONSOLEMODE_STDIN and WINRS_SKIP_CMD_SHELL, respectively,
 // and are defined here: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-wsmv/c793e333-c409-43c6-a2eb-6ae2489c7ef4
@@ -422,7 +418,6 @@ type Command struct {
 	shell      *Shell
 	stdout     *commandReader
 	stderr     *commandReader
-	stdin      *commandWriter
 	// Stdout is an io.Reader representing the remote command's stdout.
 	Stdout io.Reader
 	// Stderr is an io.Reader representing the remote command's stderr.

@@ -167,14 +167,6 @@ func (f *FileTreeCopier) addError(err error) {
 	f.errors = append(f.errors, err)
 }
 
-func validateFileBasename(fileBasename string) error {
-	if !regexpFileBasenameThatDoesNotNeedEscaping.MatchString(fileBasename) {
-		return fmt.Errorf("basename of file system entry %#v is not supported. The regexp used for "+
-			"validation is %s", fileBasename, regexpFileBasenameThatDoesNotNeedEscaping.String())
-	}
-	return nil
-}
-
 // Run copies the file tree.
 func (f *FileTreeCopier) Run() error {
 	f.stats.startTime = time.Now()
@@ -242,8 +234,6 @@ func (f *FileTreeCopier) scanDirs() {
 						log.Info(command)
 						commandLength = copy(commandBuffer, command)
 						commandDirs++
-					} else {
-						// remoteFile[:i] is the root directory, so we do not need to check if it exists
 					}
 				}
 				stat, err := os.Lstat(localFile)
@@ -479,7 +469,6 @@ end {
 		log.WithFields(log.Fields{
 			logFieldLocalFile:      localFile,
 			logFieldCopyFileWorker: w.id,
-			log.ErrorKey:           err.Error(),
 			LogFieldCommandID:      cmd.ID(),
 		}).Errorf("command exited with non-zero code %d", cmd.ExitCode())
 		atomic.StoreInt64(&gotError, 1)

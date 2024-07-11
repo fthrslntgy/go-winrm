@@ -151,13 +151,6 @@ func formatBytes(bytes float64) string {
 	return fmt.Sprintf("%.3f %s", bytes, units[logBase1024])
 }
 
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
 // FormatURL formats the HTTP URL of a WinRM endpoint.
 func FormatURL(useTLS bool, host string, port int) string {
 	scheme := "http"
